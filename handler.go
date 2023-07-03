@@ -18,12 +18,15 @@ type Config struct {
 	Level     slog.Leveler
 }
 
+// Handler is a handler that writes the log entries in the stackdriver logging
+// JSON format.
 type Handler struct {
 	encoder      *goldjson.Encoder
 	config       Config
 	attrBuilders []func(ctx context.Context, h *Handler, l *goldjson.LineWriter, next func(context.Context) error) error
 }
 
+// NewHandler returns a new Handler.
 func NewHandler(w io.Writer, config Config) *Handler {
 	encoder := goldjson.NewEncoder(w)
 	encoder.PrepareKey(fieldMessage)
@@ -43,6 +46,7 @@ func NewHandler(w io.Writer, config Config) *Handler {
 	}
 }
 
+// Handle implements slog.Handler.
 func (h *Handler) Handle(ctx context.Context, r slog.Record) error {
 	l := h.encoder.NewLine()
 
@@ -59,6 +63,7 @@ func (h *Handler) Handle(ctx context.Context, r slog.Record) error {
 	return err
 }
 
+// WithAttrs implements slog.Handler.
 func (h *Handler) WithAttrs(as []slog.Attr) slog.Handler {
 	clone := *h
 	staticFields, w := goldjson.NewStaticFields()
@@ -77,6 +82,7 @@ func (h *Handler) WithAttrs(as []slog.Attr) slog.Handler {
 	return &clone
 }
 
+// WithGroup implements slog.Handler.
 func (h *Handler) WithGroup(name string) slog.Handler {
 	clone := *h
 	clone.encoder = h.encoder.Clone()
@@ -92,6 +98,7 @@ func (h *Handler) WithGroup(name string) slog.Handler {
 	return &clone
 }
 
+// Enabled implements slog.Handler.
 func (h *Handler) Enabled(ctx context.Context, l slog.Level) bool {
 	minLevel := slog.LevelInfo
 	if h.config.Level != nil {
