@@ -8,7 +8,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        go_version: ["1.20"]
+        go_version: ["1.21"]
         os: [ubuntu-latest]
     steps:
       - name: Setup go
@@ -17,11 +17,7 @@ jobs:
           go-version: ${{ matrix.go_version }}
           cache: false
         id: go
-      - name: Setup gotip
-        run: |
-          go install golang.org/dl/gotip@latest
-          gotip download
       - name: Checkout
         uses: actions/checkout@v3
       - name: Test
-        run: gotip test -v -cover ./...
+        run: go test -v -cover ./...

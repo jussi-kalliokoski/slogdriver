@@ -205,7 +205,7 @@ func TestHandler(t *testing.T) {
 				var capture slogtest.Capture[TraceInfo]
 				logger, errs := slogtest.NewWithErrorHandler(slogdriver.NewHandler(&capture, tt.config))
 
-				logger.InfoCtx(ctx, "trace")
+				logger.InfoContext(ctx, "trace")
 				entries := capture.Entries()
 				received := entries[0]
 				err := errs.Err()
@@ -276,7 +276,7 @@ func TestHandler(t *testing.T) {
 				var capture slogtest.Capture[Entry]
 				logger, errs := slogtest.NewWithErrorHandler(slogdriver.NewHandler(&capture, slogdriver.Config{}))
 
-				logger.InfoCtx(ctx, "labels")
+				logger.InfoContext(ctx, "labels")
 				entries := capture.Entries()
 				received := entries[0].Labels
 				err := errs.Err()
