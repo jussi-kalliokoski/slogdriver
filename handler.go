@@ -54,8 +54,8 @@ func (h *Handler) Handle(ctx context.Context, r slog.Record) error {
 	h.addTimestamp(ctx, l, &r)
 	h.addSeverity(ctx, l, &r)
 	h.addSourceLocation(ctx, l, &r)
-	h.addTrace(ctx, l, &r)
-	h.addLabels(ctx, l, &r)
+	h.addTrace(ctx, l)
+	h.addLabels(ctx, l)
 
 	err := h.addAttrs(ctx, l, &r)
 	err = errors.Join(err, l.End())
@@ -107,29 +107,31 @@ func (h *Handler) Enabled(ctx context.Context, l slog.Level) bool {
 	return l >= minLevel
 }
 
-func (h *Handler) addMessage(ctx context.Context, l *goldjson.LineWriter, r *slog.Record) {
+func (h *Handler) addMessage(_ context.Context, l *goldjson.LineWriter, r *slog.Record) {
 	l.AddString(fieldMessage, r.Message)
 }
 
-func (h *Handler) addTimestamp(ctx context.Context, l *goldjson.LineWriter, r *slog.Record) {
+func (h *Handler) addTimestamp(_ context.Context, l *goldjson.LineWriter, r *slog.Record) {
 	time := r.Time.Round(0) // strip monotonic to match Attr behavior
 	l.AddTime(fieldTimestamp, time)
 }
 
-func (h *Handler) addSeverity(ctx context.Context, l *goldjson.LineWriter, r *slog.Record) {
+func (h *Handler) addSeverity(_ context.Context, l *goldjson.LineWriter, r *slog.Record) {
+	s := "DEFAULT"
 	switch {
 	case r.Level >= slog.LevelError:
-		l.AddUint64(fieldSeverity, severityError)
+		s = "ERROR"
 	case r.Level >= slog.LevelWarn:
-		l.AddUint64(fieldSeverity, severityWarn)
+		s = "WARN"
 	case r.Level >= slog.LevelInfo:
-		l.AddUint64(fieldSeverity, severityInfo)
-	default:
-		l.AddUint64(fieldSeverity, severityDebug)
+		s = "INFO"
+	case r.Level >= slog.LevelDebug:
+		s = "DEBUG"
 	}
+	l.AddString(fieldSeverity, s)
 }
 
-func (h *Handler) addSourceLocation(ctx context.Context, l *goldjson.LineWriter, r *slog.Record) {
+func (h *Handler) addSourceLocation(_ context.Context, l *goldjson.LineWriter, r *slog.Record) {
 	fs := runtime.CallersFrames([]uintptr{r.PC})
 	f, _ := fs.Next()
 
@@ -141,7 +143,7 @@ func (h *Handler) addSourceLocation(ctx context.Context, l *goldjson.LineWriter,
 	l.AddString(fieldSourceFunction, f.Function)
 }
 
-func (h *Handler) addTrace(ctx context.Context, l *goldjson.LineWriter, r *slog.Record) {
+func (h *Handler) addTrace(ctx context.Context, l *goldjson.LineWriter) {
 	trace := traceFromContext(ctx)
 	if trace.ID == "" {
 		return
@@ -154,7 +156,7 @@ func (h *Handler) addTrace(ctx context.Context, l *goldjson.LineWriter, r *slog.
 	l.AddBool(fieldTraceSampled, trace.Sampled)
 }
 
-func (h *Handler) addLabels(ctx context.Context, l *goldjson.LineWriter, r *slog.Record) {
+func (h *Handler) addLabels(ctx context.Context, l *goldjson.LineWriter) {
 	opened := false
 	labelsFromContext(ctx).Iterate(func(label Label) {
 		if !opened {
@@ -188,7 +190,7 @@ func (h *Handler) addAttrs(ctx context.Context, l *goldjson.LineWriter, r *slog.
 	return b(ctx)
 }
 
-func (h *Handler) addAttrsRaw(ctx context.Context, l *goldjson.LineWriter, r *slog.Record) error {
+func (h *Handler) addAttrsRaw(_ context.Context, l *goldjson.LineWriter, r *slog.Record) error {
 	var err error
 	r.Attrs(func(attr slog.Attr) bool {
 		err = errors.Join(err, h.addAttr(l, attr))
@@ -264,13 +266,6 @@ const (
 	fieldTraceSpanID    = "logging.googleapis.com/spanId"
 	fieldTraceSampled   = "logging.googleapis.com/trace_sampled"
 	fieldLabels         = "logging.googleapis.com/labels"
-)
-
-const (
-	severityError = 500
-	severityWarn  = 400
-	severityInfo  = 300
-	severityDebug = 200
 )
 
 func cloneSlice[T any](slice []T, extraCap int) []T {
