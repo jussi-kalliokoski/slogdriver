@@ -533,6 +533,33 @@ func TestHandler(t *testing.T) {
 			require.Equal(t, expected, received)
 		})
 
+		t.Run("LogValuer", func(t *testing.T) {
+			type CustomValuer struct {
+				Foo string `json:"foo"`
+				Bar string `json:"bar"`
+			}
+
+			type Entry struct {
+				CustomValuer CustomValuer
+			}
+
+			ctx := context.Background()
+			var capture slogtest.Capture[Entry]
+			logger, errs := slogtest.NewWithErrorHandler(slogdriver.NewHandler(&capture, slogdriver.Config{}))
+			expected := Entry{CustomValuer{"abc", "def"}}
+			logger.LogAttrs(ctx, slog.LevelError, "attrs", slog.Any("CustomValuer", ValuerFunc(func() slog.Value {
+				return slog.GroupValue(
+					slog.String("foo", "abc"),
+					slog.String("bar", "def"),
+				)
+			})))
+			received := capture.Entries()[0]
+			err := errs.Err()
+
+			require.NoError(t, err)
+			require.Equal(t, expected, received)
+		})
+
 		t.Run("error", func(t *testing.T) {
 			type Entry struct {
 				ErrorVal string
@@ -758,6 +785,12 @@ func NewCloudLoggingJSONHandler(w io.Writer, level slog.Leveler) *slog.JSONHandl
 			return a
 		},
 	})
+}
+
+type ValuerFunc func() slog.Value
+
+func (fn ValuerFunc) LogValue() slog.Value {
+	return fn()
 }
 
 type JSONError struct {
