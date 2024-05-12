@@ -198,38 +198,38 @@ func (h *Handler) addAttrsRaw(ctx context.Context, l *goldjson.LineWriter, r *sl
 }
 
 func (h *Handler) addAttr(l *goldjson.LineWriter, a slog.Attr) error {
-	a.Value.Resolve()
-	switch a.Value.Kind() {
+	v := a.Value.Resolve()
+	switch v.Kind() {
 	case slog.KindGroup:
-		return h.addGroup(l, a)
+		return h.addGroup(l, a, v)
 	case slog.KindString:
-		l.AddString(a.Key, a.Value.String())
+		l.AddString(a.Key, v.String())
 		return nil
 	case slog.KindInt64:
-		l.AddInt64(a.Key, a.Value.Int64())
+		l.AddInt64(a.Key, v.Int64())
 		return nil
 	case slog.KindUint64:
-		l.AddUint64(a.Key, a.Value.Uint64())
+		l.AddUint64(a.Key, v.Uint64())
 		return nil
 	case slog.KindFloat64:
-		l.AddFloat64(a.Key, a.Value.Float64())
+		l.AddFloat64(a.Key, v.Float64())
 		return nil
 	case slog.KindBool:
-		l.AddBool(a.Key, a.Value.Bool())
+		l.AddBool(a.Key, v.Bool())
 		return nil
 	case slog.KindDuration:
-		l.AddInt64(a.Key, int64(a.Value.Duration()))
+		l.AddInt64(a.Key, int64(v.Duration()))
 		return nil
 	case slog.KindTime:
-		return l.AddTime(a.Key, a.Value.Time())
+		return l.AddTime(a.Key, v.Time())
 	case slog.KindAny:
-		return h.addAny(l, a)
+		return h.addAny(l, a, v)
 	}
-	return fmt.Errorf("bad kind: %s", a.Value.Kind())
+	return fmt.Errorf("bad kind: %s", v.Kind())
 }
 
-func (h *Handler) addGroup(l *goldjson.LineWriter, a slog.Attr) error {
-	attrs := a.Value.Group()
+func (h *Handler) addGroup(l *goldjson.LineWriter, a slog.Attr, v slog.Value) error {
+	attrs := v.Group()
 	if len(attrs) == 0 {
 		return nil
 	}
@@ -242,14 +242,14 @@ func (h *Handler) addGroup(l *goldjson.LineWriter, a slog.Attr) error {
 	return err
 }
 
-func (h *Handler) addAny(l *goldjson.LineWriter, a slog.Attr) error {
-	v := a.Value.Any()
-	_, jm := v.(json.Marshaler)
-	if err, ok := v.(error); ok && !jm {
+func (h *Handler) addAny(l *goldjson.LineWriter, a slog.Attr, v slog.Value) error {
+	val := v.Any()
+	_, jm := val.(json.Marshaler)
+	if err, ok := val.(error); ok && !jm {
 		l.AddString(a.Key, err.Error())
 		return nil
 	}
-	return l.AddMarshal(a.Key, v)
+	return l.AddMarshal(a.Key, val)
 }
 
 const (
