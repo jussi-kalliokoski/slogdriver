@@ -119,13 +119,13 @@ func (h *Handler) addTimestamp(ctx context.Context, l *goldjson.LineWriter, r *s
 func (h *Handler) addSeverity(ctx context.Context, l *goldjson.LineWriter, r *slog.Record) {
 	switch {
 	case r.Level >= slog.LevelError:
-		l.AddUint64(fieldSeverity, severityError)
+		l.AddString(fieldSeverity, "ERROR")
 	case r.Level >= slog.LevelWarn:
-		l.AddUint64(fieldSeverity, severityWarn)
+		l.AddString(fieldSeverity, "WARN")
 	case r.Level >= slog.LevelInfo:
-		l.AddUint64(fieldSeverity, severityInfo)
+		l.AddString(fieldSeverity, "INFO")
 	default:
-		l.AddUint64(fieldSeverity, severityDebug)
+		l.AddString(fieldSeverity, "DEBUG")
 	}
 }
 
@@ -264,13 +264,6 @@ const (
 	fieldTraceSpanID    = "logging.googleapis.com/spanId"
 	fieldTraceSampled   = "logging.googleapis.com/trace_sampled"
 	fieldLabels         = "logging.googleapis.com/labels"
-)
-
-const (
-	severityError = 500
-	severityWarn  = 400
-	severityInfo  = 300
-	severityDebug = 200
 )
 
 func cloneSlice[T any](slice []T, extraCap int) []T {
