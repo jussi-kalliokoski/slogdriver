@@ -76,23 +76,23 @@ func TestHandler(t *testing.T) {
 		tests := []struct {
 			name     string
 			level    slog.Level
-			expected int
+			expected string
 		}{
-			{"debug", slog.LevelDebug, 200},
-			{"info", slog.LevelInfo, 300},
-			{"warn", slog.LevelWarn, 400},
-			{"error", slog.LevelError, 500},
-			{"below debug", slog.LevelDebug - 1, 200},
-			{"below info", slog.LevelInfo - 1, 200},
-			{"below warn", slog.LevelWarn - 1, 300},
-			{"below error", slog.LevelError - 1, 400},
-			{"above error", slog.LevelError + 1, 500},
+			{"debug", slog.LevelDebug, "DEBUG"},
+			{"info", slog.LevelInfo, "INFO"},
+			{"warn", slog.LevelWarn, "WARN"},
+			{"error", slog.LevelError, "ERROR"},
+			{"below debug", slog.LevelDebug - 1, "DEBUG"},
+			{"below info", slog.LevelInfo - 1, "DEBUG"},
+			{"below warn", slog.LevelWarn - 1, "INFO"},
+			{"below error", slog.LevelError - 1, "WARN"},
+			{"above error", slog.LevelError + 1, "ERROR"},
 		}
 
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
 				type Entry struct {
-					Severity int `json:"severity"`
+					Severity string `json:"severity"`
 				}
 				ctx := context.Background()
 				var capture slogtest.Capture[Entry]
