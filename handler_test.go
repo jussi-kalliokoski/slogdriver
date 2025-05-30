@@ -196,6 +196,73 @@ func TestHandler(t *testing.T) {
 					TraceSampled: vptr(false),
 				},
 			},
+			{
+				"dynamic no trace info",
+				slogdriver.Config{
+					TraceProvider: func(ctx context.Context) slogdriver.Trace { return slogdriver.Trace{} },
+				},
+				context.Background(),
+				TraceInfo{},
+			},
+			{
+				"dynamic span ID unavailable",
+				slogdriver.Config{
+					ProjectID: "jectpro",
+					TraceProvider: func(ctx context.Context) slogdriver.Trace {
+						return slogdriver.Trace{
+							ID: "def",
+						}
+					},
+				},
+				slogdriver.Trace{
+					ID: "abc",
+				}.Context(context.Background()),
+				TraceInfo{
+					TraceID:      vptr("projects/jectpro/traces/def"),
+					TraceSampled: vptr(false),
+				},
+			},
+			{
+				"dynamic sampled",
+				slogdriver.Config{
+					ProjectID: "ectproj",
+					TraceProvider: func(ctx context.Context) slogdriver.Trace {
+						return slogdriver.Trace{
+							ID:      "abc",
+							Sampled: true,
+						}
+					},
+				},
+				slogdriver.Trace{
+					ID:      "bcd",
+					Sampled: true,
+				}.Context(context.Background()),
+				TraceInfo{
+					TraceID:      vptr("projects/ectproj/traces/abc"),
+					TraceSampled: vptr(true),
+				},
+			},
+			{
+				"dynamic span ID",
+				slogdriver.Config{
+					ProjectID: "ctproje",
+					TraceProvider: func(ctx context.Context) slogdriver.Trace {
+						return slogdriver.Trace{
+							ID:     "abc",
+							SpanID: "foobaz",
+						}
+					},
+				},
+				slogdriver.Trace{
+					ID:     "cde",
+					SpanID: "foobar",
+				}.Context(context.Background()),
+				TraceInfo{
+					TraceID:      vptr("projects/ctproje/traces/abc"),
+					SpanID:       vptr("foobaz"),
+					TraceSampled: vptr(false),
+				},
+			},
 		}
 
 		for _, tt := range tests {

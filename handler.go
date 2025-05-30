@@ -14,8 +14,9 @@ import (
 
 // Config defines the Stackdriver configuration.
 type Config struct {
-	ProjectID string
-	Level     slog.Leveler
+	ProjectID     string
+	Level         slog.Leveler
+	TraceProvider func(context.Context) Trace
 }
 
 // Handler is a handler that writes the log entries in the stackdriver logging
@@ -142,7 +143,11 @@ func (h *Handler) addSourceLocation(ctx context.Context, l *goldjson.LineWriter,
 }
 
 func (h *Handler) addTrace(ctx context.Context, l *goldjson.LineWriter, r *slog.Record) {
-	trace := traceFromContext(ctx)
+	traceProvider := traceFromContext
+	if h.config.TraceProvider != nil {
+		traceProvider = h.config.TraceProvider
+	}
+	trace := traceProvider(ctx)
 	if trace.ID == "" {
 		return
 	}
